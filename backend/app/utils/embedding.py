@@ -58,3 +58,51 @@ def get_image_embedding(file_path):
     except Exception as e:
         print(f"Embedding failed for {file_path}: {e}")
         return None
+
+def generate_embeddings_logic():
+    """
+    Scans dataset folder and ensures all images are indexed in Qdrant.
+    Returns count of processed images.
+    """
+    from app.services.qdrant_service import QdrantService
+    import glob
+    
+    qdrant = QdrantService()
+    dataset_dir = "dataset/mini-CelebAMask-HQ-img"
+    
+    if not os.path.exists(dataset_dir):
+        return 0
+        
+    image_paths = glob.glob(os.path.join(dataset_dir, "*.*"))
+    count = 0
+    
+    # Get existing IDs to avoid re-work if possible, or just overwrite
+    # For simplicity, we process all and upsert (Qdrant handles dedupe by ID if we used deterministic IDs)
+    # But here we stick to the project's likely pattern of just adding.
+    
+    for img_path in image_paths:
+        try:
+            filename = os.path.basename(img_path)
+            # Check extension
+            if not filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+                continue
+                
+            embedding = get_image_embedding(img_path)
+            if embedding is not None:
+                # Create a simple numeric ID or hash
+                # Using hash of filename for determinism
+                import hashlib
+                suspect_id = int(hashlib.md5(filename.encode()).hexdigest(), 16) % (10**8)
+                
+                metadata = {
+                    "filename": filename,
+                    "crime_type": "Theft", # Default for demo data
+                    "timestamp": "2024-01-01T12:00:00"
+                }
+                
+                qdrant.upsert_suspect(suspect_id, embedding.tolist(), metadata)
+                count += 1
+        except Exception as e:
+            print(f"Error indexing {filename}: {e}")
+            
+    return count

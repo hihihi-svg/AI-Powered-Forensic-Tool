@@ -6,6 +6,7 @@ from .services.sketch_service import SketchService
 from .services.text_to_image_service import TextToImageService
 from .services.deepfake_detection_service import DeepfakeDetectionService
 from .services.session_service import SessionService
+from .services.sample_data_service import download_samples_task, seed_status # Demo data seeding
 import random
 import base64
 import os
@@ -1365,3 +1366,26 @@ async def get_memory_stats(suspect_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
+@router.post("/system/seed-demo-data")
+async def seed_demo_data(background_tasks: BackgroundTasks = None):
+    """
+    Triggers the download and indexing of demo data (20 sample images).
+    """
+    from fastapi import BackgroundTasks
+    
+    if seed_status["status"] == "running":
+        return {"status": "running", "message": "Already running"}
+        
+    # Reset status
+    seed_status["status"] = "idle"
+    
+    # Start task (using asyncio.create_task since we are inside async def)
+    asyncio.create_task(download_samples_task())
+    
+    return {"status": "started", "message": "Demo seeding started"}
+
+@router.get("/system/seed-status")
+async def get_seed_status():
+    """Returns the current status of the seeding process"""
+    return seed_status

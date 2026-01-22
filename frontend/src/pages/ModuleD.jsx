@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { Trash2, Search, Database, Eye, X } from "lucide-react";
+import { Trash2, Search, Database, Eye, X, Loader } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 
 const API_URL = "http://localhost:8086/api";
@@ -129,6 +129,49 @@ const ModuleD = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    // New Demo Data Feature
+    const [seeding, setSeeding] = useState(false);
+    const [seedStatus, setSeedStatus] = useState(null);
+
+    const handleSeedData = async () => {
+        if (!confirm("This will download and index 15 sample suspects from the internet. Continue?")) return;
+
+        try {
+            setSeeding(true);
+            await axios.post(`${API_URL}/system/seed-demo-data`);
+            pollSeedStatus();
+        } catch (error) {
+            console.error("Seeding error:", error);
+            alert("Failed to start data loading");
+            setSeeding(false);
+        }
+    };
+
+    const pollSeedStatus = async () => {
+        const interval = setInterval(async () => {
+            try {
+                const res = await axios.get(`${API_URL}/system/seed-status`);
+                setSeedStatus(res.data);
+
+                if (res.data.status === 'completed' || res.data.status === 'failed') {
+                    clearInterval(interval);
+                    setSeeding(false);
+                    if (res.data.status === 'completed') {
+                        alert("Success! Demo data loaded.");
+                        loadSuspects();
+                        loadStats();
+                    } else {
+                        alert("Error loading data: " + res.data.message);
+                    }
+                    setTimeout(() => setSeedStatus(null), 3000);
+                }
+            } catch (e) {
+                clearInterval(interval);
+                setSeeding(false);
+            }
+        }, 1000);
     };
 
     const handleAddSubmit = async (e) => {
@@ -328,6 +371,20 @@ const ModuleD = () => {
                         <span>History</span>
                         History (Deleted)
                     </button>
+                    {!seeding ? (
+                        <button
+                            onClick={handleSeedData}
+                            className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-all flex items-center gap-2"
+                        >
+                            <Database className="w-4 h-4" />
+                            Load Demo Data
+                        </button>
+                    ) : (
+                        <div className="px-6 py-2 bg-purple-900/50 text-purple-200 rounded-lg flex items-center gap-2 border border-purple-500/50">
+                            <Loader className="w-4 h-4 animate-spin" />
+                            <span className="text-xs">{seedStatus?.message || "Loading..."}</span>
+                        </div>
+                    )}
                 </div>
 
                 {/* Suspects Table */}
