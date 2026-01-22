@@ -2,6 +2,34 @@
 
 A comprehensive forensic analysis system that combines speech recognition, AI-powered sketch generation, deepfake detection, and intelligent database management for law enforcement and investigative purposes.
 
+## 🚩 Problem Statement
+
+### The Challenge
+Law enforcement agencies face significant challenges in suspect identification:
+- **Time-Intensive**: Manual sketch creation takes hours or days, delaying investigations.
+- **Inaccurate Descriptions**: Witness memory fades quickly, leading to inconsistent descriptions.
+- **Inefficient Search**: Searching through thousands of mugshots manually is error-prone.
+- **Lack of Context**: Traditional databases don't "remember" investigation history or usage patterns.
+
+### Our Solution
+This AI-Powered Forensic Tool addresses these gaps by:
+1. **Accelerating Identification**: Generates sketches from voice descriptions in seconds.
+2. **Enhancing Accuracy**: Uses Facenet embeddings to find semantic matches, not just keywords.
+3. **Preserving Context**: Implements a session-based memory system that evolves with the investigation.
+4. **Ensuring Integrity**: Includes deepfake detection to verify digital evidence.
+
+## 🧠 Multimodal Strategy
+
+The system processes and correlates four distinct data modalities:
+
+1. **Audio**: Voice descriptions from witnesses (Google Speech Recognition)
+2. **Text**: Transcribed descriptions structured for image generation
+3. **Images**: Suspect photos and Stable Diffusion-generated sketches
+4. **Vectors**: 512-dimensional facial embeddings (Facenet-PyTorch)
+
+**Pipeline Flow**:
+`Audio` → `Text` → `Image (Sketch)` → `Vector Embedding` → `Qdrant Search`
+
 ## 🎯 Features
 
 ### Module A: Speech-to-Sketch Generation
@@ -266,6 +294,45 @@ await SessionManager.updateContext({
   investigation_stage: 'initial_search'
 });
 ```
+
+## 🧪 Sample Queries & Outputs
+
+### 1. Voice Description Search
+**Input Audio**: "Male subject, around 30 years old, short brown hair, blue eyes."
+**System Process**:
+- Transcribes audio to text
+- Generates sketch using Stable Diffusion + ControlNet
+- Extracts vector embedding from sketch
+- Queries Qdrant collection `crime_records`
+
+**Output**:
+- **Sketch**: [Generated Image]
+- **Top Match**: Suspect #1234 (Similarity: 0.87)
+- **Memory Boost**: +5% confidence (frequently accessed)
+
+### 2. Session History Retrieval
+**Request**: `GET /api/sessions/{id}/history`
+**Response**:
+```json
+{
+  "type": "search",
+  "query": "short brown hair",
+  "timestamp": "2026-01-22T10:30:00",
+  "results_count": 5
+}
+```
+
+## ⚖️ Ethics, Bias & Limitations
+
+### limitations
+- **Sketch Accuracy**: AI generation depends on the specificity of the description. Vague descriptions yield generic sketches.
+- **Demographic Bias**: Underlying models (Stable Diffusion, Facenet) may carry training data biases. We mitigate this by providing confidence scores and requiring human verification.
+- **Data Quality**: Search results are only as good as the enrolled database image quality.
+
+### Responsible Use
+- **Law Enforcement Only**: This tool is designed for authorized investigative use, not public surveillance.
+- **Human-in-the-loop**: AI outputs are leads, not evidence. Final identification requires human verification.
+- **Privacy Design**: Session data auto-expires after 24 hours. No biometric data is sent to external cloud storage for search (local Qdrant instance).
 
 ## 🔐 Security Considerations
 
