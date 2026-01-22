@@ -1,0 +1,84 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+ENV/
+env/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Qdrant Storage
+backend/qdrant_storage*/
+backend/.qdrant/
+*.lock
+
+# Node modules
+node_modules/
+frontend/node_modules/
+
+# Build outputs
+frontend/dist/
+frontend/build/
+
+# Environment files
+.env
+.env.local
+.env.production.local
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Temporary files
+*.tmp
+*.temp
+temp_upload_*
+
+# Dataset images (too large for GitHub)
+backend/dataset/
+backend/dataset_index.pkl
+
+# Generated files
+backend/generated_sketch_*.png
+backend/temp_upload_*
+
+# Model files (if too large)
+backend/models/*.pth
+backend/models/*.pt
+backend/models/*.ckpt
+backend/models/*.bin
+backend/models/*.safetensors
