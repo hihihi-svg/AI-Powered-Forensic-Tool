@@ -390,10 +390,13 @@ npm install
 
 ## 📝 Dataset Setup
 
-The system requires a dataset of suspect images. Place images in:
-```
-backend/dataset/mini-CelebAMask-HQ-img/
-```
+The system requires a dataset of suspect images. You can use the **CelebAMask-HQ** dataset or any collection of face images.
+
+1.  **Download Dataset**: [CelebAMask-HQ Link](https://github.com/switchablenorms/CelebAMask-HQ) (or use your own images).
+2.  **Extract**: Unzip the images into the following directory:
+    ```
+    backend/dataset/mini-CelebAMask-HQ-img/
+    ```
 
 Images should be:
 - High quality (preferably 512x512 or higher)
