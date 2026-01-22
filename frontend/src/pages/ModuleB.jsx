@@ -1,6 +1,7 @@
 import { useState } from "react";
 import axios from "axios";
 import { Upload, CheckCircle, AlertTriangle, Search, Loader } from "lucide-react";
+import { SessionManager } from "../config/api"; // Import SessionManager
 
 const ModuleB = () => {
     const [selectedFile, setSelectedFile] = useState(null);
@@ -55,8 +56,20 @@ const ModuleB = () => {
                 });
                 console.log("Search Response:", searchResponse.data);
                 setSearchResults(searchResponse.data.results);
+
+                // Log Interaction (Search)
+                SessionManager.logInteraction('search', `Image analysis: ${selectedFile.name}`, {
+                    matches_found: searchResponse.data.results?.length || 0,
+                    authenticity: "Real"
+                });
+
             } else {
                 console.log("Image is NOT real. Skipping search.");
+                // Log Interaction (Deepfake Detected)
+                SessionManager.logInteraction('detect', `Deepfake check: ${selectedFile.name}`, {
+                    is_deepfake: true,
+                    authenticity: "Fake"
+                });
             }
         } catch (error) {
             console.error("Analysis failed:", error);

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import axios from "axios";
 import { Upload, ShieldCheck, AlertOctagon, Loader } from "lucide-react";
+import { SessionManager } from "../config/api"; // Import SessionManager
 
 const ModuleC = () => {
     const [selectedFile, setSelectedFile] = useState(null);
@@ -27,6 +28,14 @@ const ModuleC = () => {
                 timeout: 30000  // 30 seconds for API call  
             });
             setResult(response.data);
+
+            // Log Interaction
+            SessionManager.logInteraction('detect', `Deepfake Analysis: ${selectedFile.name}`, {
+                is_deepfake: !response.data.is_real,
+                authenticity: response.data.is_real ? "Real" : "Fake",
+                confidence: response.data.confidence
+            });
+
         } catch (error) {
             console.error("Full error:", error);
             const errorMsg = error.response?.data?.detail || error.message || "Unknown error";

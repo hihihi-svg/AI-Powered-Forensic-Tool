@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Loader, ArrowRight, Mic, StopCircle } from "lucide-react";
+import { SessionManager } from "../config/api"; // Import SessionManager
 
 const ModuleA = () => {
     const navigate = useNavigate();
@@ -129,6 +130,12 @@ const ModuleA = () => {
                         setMatches(statusResponse.data.matches || []);
                         setLoading(false);
                         setProgress(100);
+
+                        // Log interaction
+                        SessionManager.logInteraction('generate', description, {
+                            sketch_generated: true,
+                            matches_found: statusResponse.data.matches?.length || 0
+                        });
                     } else if (status === "failed") {
                         clearInterval(pollInterval);
                         console.error("Job failed:", statusResponse.data.error);

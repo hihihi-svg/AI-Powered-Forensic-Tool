@@ -4,6 +4,7 @@ import { Trash2, Search, Database, Eye, X } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 
 const API_URL = "http://localhost:8086/api";
+import { SessionManager } from "../config/api"; // Import SessionManager
 
 const COLORS = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#6366f1'];
 // const FIRST_NAMES... (keep existing)
@@ -97,6 +98,11 @@ const ModuleD = () => {
             alert("Suspect deleted successfully");
             loadSuspects(selectedCrime);
             loadStats();
+
+            // Log Interaction
+            SessionManager.logInteraction('delete', `Deleted suspect record: ${id}`, {
+                record_id: id
+            });
         } catch (error) {
             console.error("Delete error:", error);
             alert("Failed to delete suspect");
@@ -373,7 +379,14 @@ const ModuleD = () => {
                                         <td className="py-3 px-4 text-right">
                                             <div className="flex items-center justify-end gap-2">
                                                 <button
-                                                    onClick={() => setViewSuspect(suspect)}
+                                                    onClick={() => {
+                                                        setViewSuspect(suspect);
+                                                        // Log Interaction
+                                                        SessionManager.logInteraction('view', `Viewed details: ${suspect.payload?.filename}`, {
+                                                            suspect_id: suspect.id,
+                                                            crime_type: suspect.payload?.crime_type
+                                                        });
+                                                    }}
                                                     className="p-2 text-blue-400 hover:text-blue-300 hover:bg-blue-900/20 rounded transition-all"
                                                     title="View Details"
                                                 >
