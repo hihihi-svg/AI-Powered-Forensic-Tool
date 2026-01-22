@@ -2,6 +2,7 @@ from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, VectorParams, PointStruct
 import os
 from pathlib import Path
+from .memory_service import MemoryService
 
 class QdrantService:
     def __init__(self):
@@ -13,6 +14,9 @@ class QdrantService:
         print(f"DEBUG: Qdrant Local Storage at: {self.storage_path}")
         self.client = QdrantClient(path=str(self.storage_path))
         self.collection_name = "crime_records"
+        
+        # Initialize memory service
+        self.memory_service = MemoryService()
         
         # Ensure collection exists
         self._ensure_collection()
@@ -64,7 +68,7 @@ class QdrantService:
 
     def insert_record(self, vector: list, metadata: dict):
         """
-        Insert a new record.
+        Insert a new record with memory metadata initialization.
         """
         try:
             import uuid
@@ -74,6 +78,9 @@ class QdrantService:
                  point_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, metadata["filename"]))
             else:
                  point_id = str(uuid.uuid4())
+            
+            # Initialize memory metadata
+            metadata = self.memory_service.initialize_metadata(metadata)
             
             point = PointStruct(
                 id=point_id,
@@ -97,13 +104,22 @@ class QdrantService:
         except:
              return 0
 
-    def get_record(self, point_id: str):
-        """Get a single record by ID"""
+    def get_record(self, point_id: str, update_access: bool = True):
+        """Get a single record by ID and optionally update access metadata"""
         try:
             result = self.client.retrieve(
                 collection_name=self.collection_name,
                 ids=[point_id]
             )
+            
+            if result and len(result) > 0 and update_access:
+                # Update access metadata
+                record = result[0]
+                updated_metadata = self.memory_service.update_access_metadata(record.payload)
+                self.update_record(point_id, updated_metadata)
+                record.payload = updated_metadata
+                return record
+            
             return result[0] if result else None
         except Exception as e:
             print(f"Get record error: {e}")

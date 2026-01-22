@@ -29,6 +29,16 @@ A comprehensive forensic analysis system that combines speech recognition, AI-po
 - **Recycle Bin**: Soft delete with recovery options
 - **Analytics Dashboard**: Visual insights with charts and statistics
 
+### 🆕 Session Management & Memory System
+- **Session Tracking**: Automatic user session management with 24-hour persistence
+- **Interaction History**: Logs all searches, views, generations, and detections
+- **Evolving Memory**: Suspects "learn" from access patterns
+  - Frequently accessed suspects get confidence boost (up to +30%)
+  - Temporal decay for unused records (30-day half-life)
+  - Reinforcement learning based on usage patterns
+- **Memory Layers**: Clear separation of knowledge, context, and history
+- **Backward Compatible**: All features work with or without sessions
+
 ## 🛠️ Technology Stack
 
 ### Backend
@@ -37,7 +47,9 @@ A comprehensive forensic analysis system that combines speech recognition, AI-po
   - Stable Diffusion v1.5 with ControlNet (Sketch generation)
   - Facenet-PyTorch (Face embeddings)
   - DeepFake detection models
-- **Vector Database**: Qdrant (for similarity search)
+- **Vector Database**: Qdrant (for similarity search and memory)
+- **Session Management**: File-based JSON storage with automatic cleanup
+- **Memory System**: Temporal decay and reinforcement learning
 - **Speech Recognition**: Google Speech Recognition API
 - **Image Processing**: PIL, OpenCV, torchvision
 
@@ -135,12 +147,15 @@ AI-Powered-Forensic-Tool/
 │   │   │   ├── sketch_service.py   # Speech-to-sketch generation
 │   │   │   ├── deepfake_detection_service.py
 │   │   │   ├── text_to_image_service.py
-│   │   │   └── qdrant_service.py   # Vector database operations
+│   │   │   ├── qdrant_service.py   # Vector database operations
+│   │   │   ├── session_service.py  # Session management (NEW)
+│   │   │   └── memory_service.py   # Evolving memory (NEW)
 │   │   └── utils/
 │   │       └── embedding.py        # Face embedding utilities
 │   ├── dataset/                    # Suspect image dataset
 │   ├── models/                     # AI model storage
 │   ├── qdrant_storage/            # Vector database storage
+│   ├── sessions/                   # Session data storage (NEW)
 │   └── requirements.txt           # Python dependencies
 ├── frontend/
 │   ├── src/
@@ -153,7 +168,7 @@ AI-Powered-Forensic-Tool/
 │   │   ├── components/
 │   │   │   └── AudioRecorder.jsx  # Audio recording component
 │   │   ├── config/
-│   │   │   └── api.js             # API configuration
+│   │   │   └── api.js             # API config + SessionManager (UPDATED)
 │   │   └── App.jsx                # Main application component
 │   └── package.json               # Node dependencies
 └── README.md
@@ -174,6 +189,19 @@ AI-Powered-Forensic-Tool/
 - `POST /api/generate-sketch` - Generate sketch from audio description
 - `POST /api/detect-deepfake` - Detect deepfakes in images
 - `POST /api/search-similar` - Find similar faces in database
+
+### 🆕 Session Management
+- `POST /api/sessions` - Create new session
+- `GET /api/sessions/{session_id}` - Get session data
+- `GET /api/sessions/{session_id}/history` - Get interaction history
+- `POST /api/sessions/{session_id}/interactions` - Log interaction
+- `GET /api/sessions/{session_id}/context` - Get session context
+- `PUT /api/sessions/{session_id}/context` - Update session context
+- `DELETE /api/sessions/{session_id}` - Delete session
+- `POST /api/sessions/cleanup` - Clean up expired sessions
+
+### 🆕 Memory Statistics
+- `GET /api/memory/stats/{suspect_id}` - Get memory stats for suspect
 
 ## 🎨 Features in Detail
 
@@ -197,6 +225,47 @@ AI-Powered-Forensic-Tool/
 - Soft delete with recycle bin functionality
 - Advanced filtering and search capabilities
 - Analytics and visualization
+
+### 🆕 Session Management & Memory System
+**Session Tracking**:
+- Automatic session creation and management
+- 24-hour session persistence
+- Interaction history logging (searches, views, generations, detections)
+- Session context for investigation state
+
+**Evolving Memory**:
+- **Access Tracking**: Records how often suspects are viewed/matched
+- **Confidence Boosting**: Frequently accessed suspects get up to +30% confidence boost
+- **Temporal Decay**: Unused records decay with 30-day half-life
+- **Reinforcement Learning**: Combines access frequency and recency
+
+**Memory Layers**:
+- **Knowledge**: Static suspect data (embeddings, metadata)
+- **Context**: Current investigation state (per session)
+- **History**: User interactions and access patterns
+
+**Usage Example**:
+```javascript
+import { SessionManager } from './config/api';
+
+// Initialize session
+const sessionId = await SessionManager.getSessionId();
+
+// Log a search interaction
+await SessionManager.logInteraction('search', 
+  'brown hair, blue eyes',
+  { matches: 5, top_match: 'suspect_123' }
+);
+
+// Get interaction history
+const history = await SessionManager.getHistory(20);
+
+// Update investigation context
+await SessionManager.updateContext({
+  current_case: 'case_456',
+  investigation_stage: 'initial_search'
+});
+```
 
 ## 🔐 Security Considerations
 

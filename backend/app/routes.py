@@ -1,10 +1,11 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException, Form, Body
+from fastapi import APIRouter, UploadFile, File, HTTPException, Form, Body, Header
 from pydantic import BaseModel
 from typing import Optional
 from .services.qdrant_service import QdrantService
 from .services.sketch_service import SketchService
 from .services.text_to_image_service import TextToImageService
 from .services.deepfake_detection_service import DeepfakeDetectionService
+from .services.session_service import SessionService
 import random
 import base64
 import os
@@ -28,6 +29,8 @@ sketch_svc = SketchService()
 text_to_image_svc = TextToImageService()
 # Initialize DeepfakeDetectionService  
 deepfake_svc = DeepfakeDetectionService()
+# Initialize SessionService
+session_svc = SessionService()
 
 DATASET_INDEX = None
 print("DEBUG: *** SERVER MATCH-DISPLAY-FIX VERSION LOADED ***", flush=True)
@@ -1204,4 +1207,161 @@ async def get_suspect(suspect_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
+# ============================================================================
+# SESSION MANAGEMENT ENDPOINTS
+# ============================================================================
+
+class SessionCreate(BaseModel):
+    user_id: Optional[str] = None
+
+class InteractionLog(BaseModel):
+    interaction_type: str  # "search", "view", "generate", "detect"
+    query: Optional[str] = None
+    results: Optional[dict] = None
+    metadata: Optional[dict] = None
+
+class ContextUpdate(BaseModel):
+    context_data: dict
+
+@router.post("/sessions")
+async def create_session(session_data: SessionCreate):
+    """
+    Create a new user session.
+    """
+    try:
+        session = session_svc.create_session(session_data.user_id)
+        return {
+            "success": True,
+            "session_id": session["session_id"],
+            "created_at": session["created_at"]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/sessions/{session_id}")
+async def get_session(session_id: str):
+    """
+    Get session data by ID.
+    """
+    try:
+        session = session_svc.get_session(session_id)
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found or expired")
+        return {"success": True, "data": session}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/sessions/{session_id}/history")
+async def get_session_history(session_id: str, limit: int = 50):
+    """
+    Get interaction history for a session.
+    """
+    try:
+        history = session_svc.get_interaction_history(session_id, limit)
+        return {
+            "success": True,
+            "session_id": session_id,
+            "history": history,
+            "count": len(history)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/sessions/{session_id}/interactions")
+async def log_interaction(session_id: str, interaction: InteractionLog):
+    """
+    Log a user interaction to session history.
+    """
+    try:
+        interaction_data = {
+            "type": interaction.interaction_type,
+            "query": interaction.query,
+            "results": interaction.results,
+            "metadata": interaction.metadata or {}
+        }
+        
+        success = session_svc.log_interaction(session_id, interaction_data)
+        if not success:
+            # Session might not exist, create it
+            session_svc.create_session()
+            success = session_svc.log_interaction(session_id, interaction_data)
+        
+        return {"success": success, "message": "Interaction logged"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/sessions/{session_id}/context")
+async def get_session_context(session_id: str):
+    """
+    Get current session context.
+    """
+    try:
+        context = session_svc.get_context(session_id)
+        return {"success": True, "context": context}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.put("/sessions/{session_id}/context")
+async def update_session_context(session_id: str, context_update: ContextUpdate):
+    """
+    Update session context.
+    """
+    try:
+        success = session_svc.update_context(session_id, context_update.context_data)
+        if not success:
+            raise HTTPException(status_code=404, detail="Session not found")
+        return {"success": True, "message": "Context updated"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/sessions/{session_id}")
+async def delete_session(session_id: str):
+    """
+    Delete a session.
+    """
+    try:
+        success = session_svc.delete_session(session_id)
+        return {"success": success, "message": "Session deleted"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/sessions/cleanup")
+async def cleanup_expired_sessions():
+    """
+    Clean up expired sessions (admin endpoint).
+    """
+    try:
+        deleted_count = session_svc.cleanup_expired_sessions()
+        return {
+            "success": True,
+            "message": f"Cleaned up {deleted_count} expired sessions"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/memory/stats/{suspect_id}")
+async def get_memory_stats(suspect_id: str):
+    """
+    Get memory statistics for a suspect record.
+    """
+    try:
+        record = qdrant_svc.get_record(suspect_id, update_access=False)
+        if not record:
+            raise HTTPException(status_code=404, detail="Suspect not found")
+        
+        stats = qdrant_svc.memory_service.get_memory_stats(record.payload)
+        return {
+            "success": True,
+            "suspect_id": suspect_id,
+            "memory_stats": stats
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
